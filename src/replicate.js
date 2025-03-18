@@ -5,7 +5,7 @@ import {
     getColumnMetadata,
     getPrimaryKeys,
     fetchChunk,
-    getEstimatedRowCount,
+    getDb2RowCount,
     getViewDefinition,
 } from './db2.js';
 
@@ -90,16 +90,16 @@ async function replicateTable(db2, pgClient, schema, table) {
 
     await ensureTableExists(pgClient, schema, table, columns, primaryKeys);
 
-    const estimatedTotal = await getEstimatedRowCount(db2, db2Schema, db2Table);
-    if (estimatedTotal > 0) {
-        console.log(chalk.blue(`🔍 Estimated total rows for ${schema}.${table}: ${estimatedTotal}`));
+    const db2Count = await getDb2RowCount(db2, db2Schema, db2Table);
+    if (db2Count > 0) {
+        console.log(chalk.blue(`🔍 Total rows for ${schema}.${table}: ${db2Count}`));
     } else {
-        console.log(chalk.yellow(`⚠️ Could not determine estimated total rows for ${schema}.${table}`));
+        console.log(chalk.yellow(`⚠️ Could not determine total rows for ${schema}.${table}`));
     }
 
     if (!config.replication.reset) {
         const postgresCount = await getPostgresRowCount(pgClient, schema, table);
-        if (postgresCount === estimatedTotal) {
+        if (postgresCount === db2Count) {
             console.log(chalk.yellow(`⚠️ Skipping ${schema}.${table} (record counts match)`));
             return;
         } else {
@@ -129,9 +129,9 @@ async function replicateTable(db2, pgClient, schema, table) {
 
             offset += chunkSize;
 
-            if (estimatedTotal > 0) {
-                const percent = ((totalFetched / estimatedTotal) * 100).toFixed(2);
-                spinner.text = `📥 Fetched & inserted ${totalFetched}/${estimatedTotal} records (${percent}%)`;
+            if (db2Count > 0) {
+                const percent = ((totalFetched / db2Count) * 100).toFixed(2);
+                spinner.text = `📥 Fetched & inserted ${totalFetched}/${db2Count} records (${percent}%)`;
             } else {
                 spinner.text = `📥 Fetched & inserted ${totalFetched} records (total unknown)`;
             }

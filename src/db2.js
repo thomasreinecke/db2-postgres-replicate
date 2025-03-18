@@ -117,26 +117,26 @@ export async function fetchChunk(db2, schema, table, columns, chunkSize, offset)
 }
 
 /**
- * Get an estimated total row count from DB2 using the CARD column in SYSCAT.TABLES.
+ * Get the exact total row count from DB2 using SELECT COUNT(*).
  */
-export async function getEstimatedRowCount(db2, schema, table) {
-    try {
-        const result = await new Promise((resolve, reject) => {
-            db2.query(
-                `SELECT CARD FROM SYSCAT.TABLES WHERE TABSCHEMA = ? AND TABNAME = ?`,
-                [schema.toUpperCase(), table.toUpperCase()],
-                (err, res) => (err ? reject(err) : resolve(res))
-            );
-        });
-        if (result.length && result[0].CARD) {
-            return parseInt(result[0].CARD, 10);
-        }
-        return 0;
-    } catch (error) {
-        console.error(`⚠️ Error getting estimated row count for ${schema}.${table}: ${error.message}`);
-        return 0;
-    }
+export async function getDb2RowCount(db2, schema, table) {
+  try {
+      const result = await new Promise((resolve, reject) => {
+          db2.query(
+              `SELECT COUNT(*) AS COUNT FROM ${schema.toUpperCase()}.${table.toUpperCase()}`,
+              (err, res) => (err ? reject(err) : resolve(res))
+          );
+      });
+      if (result.length && result[0].COUNT) {
+          return parseInt(result[0].COUNT, 10);
+      }
+      return 0;
+  } catch (error) {
+      console.error(`⚠️ Error getting exact row count for ${schema}.${table}: ${error.message}`);
+      return 0;
+  }
 }
+
 
 /**
  * Get the view definition from DB2.
